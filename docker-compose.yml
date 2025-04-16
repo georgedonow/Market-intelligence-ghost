@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  ingestion:
+    build: ./ingestion
+    container_name: ingestion_service
+    restart: always
+    volumes:
+      - ./ingestion:/app
+    depends_on:
+      - redis
+
+  preprocessing:
+    build: ./preprocessing
+    container_name: preprocessing_service
+    restart: always
+    volumes:
+      - ./preprocessing:/app
+    depends_on:
+      - ingestion
+
+  gpt_core:
+    build: ./gpt_core
+    container_name: gpt_core_service
+    restart: always
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./gpt_core:/app
+    depends_on:
+      - preprocessing
+
+  output:
+    build: ./output
+    container_name: output_service
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./output:/app
+    depends_on:
+      - gpt_core
+
+  redis:
+    image: redis:alpine
+    container_name: redis_queue
+    restart: always
+    ports:
+      - "6379:6379"
